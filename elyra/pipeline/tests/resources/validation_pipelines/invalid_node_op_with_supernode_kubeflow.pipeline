@@ -183,12 +183,16 @@
       "app_data": {
         "ui_data": {
           "runtime": {
-            "name": "kfp",
             "display_name": "Kubeflow Pipelines"
           },
           "comments": []
         },
-        "version": 3
+        "version": 3,
+        "runtime": "kfp",
+        "properties": {
+          "name": "untitled22",
+          "runtime": "Kubeflow Pipelines"
+        }
       },
       "runtime_ref": ""
     },

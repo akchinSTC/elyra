@@ -237,12 +237,16 @@
       "app_data": {
         "ui_data": {
           "runtime": {
-            "name": "airflow",
             "display_name": "Kubeflow Pipelines"
           },
           "comments": []
         },
-        "version": 3
+        "version": 3,
+        "runtime": "airflow",
+        "properties": {
+          "name": "untitled20",
+          "runtime": "Apache Airflow"
+        }
       },
       "runtime_ref": ""
     }

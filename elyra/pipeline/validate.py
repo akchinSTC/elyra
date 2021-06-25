@@ -262,6 +262,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                                                    response=response)
 
                     # Validate against more specific node properties in component registry
+                    node_label = node_data['ui_data']['label']
                     node_data.pop('ui_data')  # remove unwanted/unneeded key
                     property_list = self._get_component_properties(pipeline_runtime, components, node['op'])
                     for node_property in list(property_list.keys()):
@@ -270,14 +271,14 @@ class PipelineValidationManager(SingletonConfigurable):
                                                  message_type="invalidNodeProperty",
                                                  message="Node is missing field",
                                                  data={"nodeID": node['id'],
-                                                       "nodeName": node['app_data']['ui_data']['label'],
+                                                       "nodeName": node_label,
                                                        "propertyName": node_property})
                         elif not isinstance(node_data[node_property], type(property_list[node_property])):
                             response.add_message(severity=ValidationSeverity.Error,
                                                  message_type="invalidNodeProperty",
                                                  message="Node field is incorrect type",
                                                  data={"nodeID": node['id'],
-                                                       "nodeName": node['app_data']['ui_data']['label'],
+                                                       "nodeName": node_label,
                                                        "propertyName": node_property})
 
     def _validate_container_image_name(self, node, response: ValidationResponse) -> None:
@@ -289,7 +290,7 @@ class PipelineValidationManager(SingletonConfigurable):
         image_name = node['app_data'].get('runtime_image', '')
         if not image_name:
             response.add_message(severity=ValidationSeverity.Error,
-                                 message_type="invalidNodePropertyValue",
+                                 message_type="invalidNodeProperty",
                                  message="Node is missing image name",
                                  data={"nodeID": node['id'],
                                        "nodeName": node['app_data']['ui_data']['label'],
@@ -307,14 +308,14 @@ class PipelineValidationManager(SingletonConfigurable):
             try:
                 if int(node['app_data'][resource_name]) <= 0:
                     response.add_message(severity=ValidationSeverity.Error,
-                                         message_type="invalidNodePropertyValue",
+                                         message_type="invalidNodeProperty",
                                          message="Property must be greater than zero",
                                          data={"nodeID": node['id'],
                                                "nodeName": node['app_data']['ui_data']['label'],
                                                "propertyName": resource_name})
             except (ValueError, TypeError):
                 response.add_message(severity=ValidationSeverity.Error,
-                                     message_type="invalidNodePropertyValue",
+                                     message_type="invalidNodeProperty",
                                      message="Property has a non-parsable value",
                                      data={"nodeID": node['id'],
                                            "nodeName": node['app_data']['ui_data']['label'],
@@ -500,6 +501,12 @@ class PipelineValidationManager(SingletonConfigurable):
         :param node_op: the node operation e.g. execute-notebook-node
         :return: a list of property names associated with the node op
         """
+        if node_op == "execute-notebook-node":
+            node_op = "notebooks"
+        elif node_op == "execute-r-node":
+            node_op = "r-script"
+        elif node_op == "execute-python-node":
+            node_op = "python-script"
         for category in components['categories']:
             if node_op == category['node_types'][0]['op']:
                 properties = ComponentRegistry().get_properties(pipeline_runtime, category['id'])

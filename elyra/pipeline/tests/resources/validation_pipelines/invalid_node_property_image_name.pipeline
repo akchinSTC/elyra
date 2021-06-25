@@ -419,6 +419,10 @@
           "comments": []
         },
         "version": 3,
+        "properties": {
+          "name": "untitled22",
+          "runtime": "Kubeflow Pipelines"
+        },
         "name": "untitled4",
         "runtime": "kfp",
         "runtime-config": "kfp",

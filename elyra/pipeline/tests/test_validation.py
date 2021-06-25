@@ -126,13 +126,13 @@ async def test_invalid_node_property_structure(monkeypatch, load_pipeline):
     node_property = 'runtime_image'
     pvm = PipelineValidationManager()
 
-    monkeypatch.setattr(pvm, "_validate_filepath", lambda node_id, root_dir, property_name, filename, response: True)
+    monkeypatch.setattr(pvm, "_validate_filepath", lambda node, root_dir, property_name, filename, response: True)
 
     await pvm._validate_node_properties(root_dir='',
                                         pipeline=pipeline,
                                         response=response,
                                         pipeline_runtime='generic',
-                                        pipeline_execution='local')
+                                        pipeline_execution='kfp')
 
     issues = response.to_json().get('issues')
     assert len(issues) == 1
@@ -144,11 +144,11 @@ async def test_invalid_node_property_structure(monkeypatch, load_pipeline):
 
 async def test_missing_node_property_for_kubeflow_pipeline(monkeypatch, load_pipeline):
     pipeline, response = load_pipeline('invalid_node_property_in_kubeflow.pipeline')
-    node_id = '0934a7bc-0f32-4c8a-9d92-e1a5adecc247'
-    node_property = 'model_uid'
+    node_id = 'dd563d1f-c43e-4c4e-8e7b-9f9925b4223c'
+    node_property = "elyra_path_notebook"
     pvm = PipelineValidationManager()
 
-    monkeypatch.setattr(pvm, "_validate_filepath", lambda node_id, root_dir, property_name, filename, response: True)
+    monkeypatch.setattr(pvm, "_validate_filepath", lambda node, root_dir, property_name, filename, response: True)
 
     await pvm._validate_node_properties(root_dir='',
                                         pipeline=pipeline,
@@ -175,17 +175,17 @@ def test_invalid_node_property_image_name(load_pipeline):
 
     issues = response.to_json().get('issues')
     assert issues[0]['severity'] == 1
-    assert issues[0]['type'] == 'invalidNodePropertyValue'
+    assert issues[0]['type'] == 'invalidNodeProperty'
     assert issues[0]['data']['propertyName'] == node_property
     assert issues[0]['data']['nodeID'] == node_id
 
 
 def test_invalid_node_property_dependency_filepath_workspace():
     response = ValidationResponse()
-    node_id = 'test-id'
+    node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     property_name = 'test-property'
 
-    PipelineValidationManager()._validate_filepath(node_id=node_id, root_dir=os.getcwd(),
+    PipelineValidationManager()._validate_filepath(node=node, root_dir=os.getcwd(),
                                                    property_name=property_name,
                                                    filename='../invalid_filepath/to/file.ipynb',
                                                    response=response)
@@ -193,15 +193,15 @@ def test_invalid_node_property_dependency_filepath_workspace():
     assert issues[0]['severity'] == 1
     assert issues[0]['type'] == 'invalidFilePath'
     assert issues[0]['data']['propertyName'] == property_name
-    assert issues[0]['data']['nodeID'] == node_id
+    assert issues[0]['data']['nodeID'] == node['id']
 
 
 def test_invalid_node_property_dependency_filepath_non_existent():
     response = ValidationResponse()
-    node_id = 'test-id'
+    node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     property_name = 'test-property'
 
-    PipelineValidationManager()._validate_filepath(node_id=node_id, root_dir=os.getcwd(),
+    PipelineValidationManager()._validate_filepath(node=node, root_dir=os.getcwd(),
                                                    property_name=property_name,
                                                    filename='invalid_filepath/to/file.ipynb',
                                                    response=response)
@@ -209,16 +209,16 @@ def test_invalid_node_property_dependency_filepath_non_existent():
     assert issues[0]['severity'] == 1
     assert issues[0]['type'] == 'invalidFilePath'
     assert issues[0]['data']['propertyName'] == property_name
-    assert issues[0]['data']['nodeID'] == node_id
+    assert issues[0]['data']['nodeID'] == node['id']
 
 
 def test_valid_node_property_dependency_filepath():
     response = ValidationResponse()
     valid_filename = 'elyra/pipeline/tests/resources/validation_pipelines/single_cycle.pipeline'
-    node_id = 'test-id'
+    node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     property_name = 'test-property'
 
-    PipelineValidationManager()._validate_filepath(node_id=node_id, root_dir=os.getcwd(),
+    PipelineValidationManager()._validate_filepath(node=node, root_dir=os.getcwd(),
                                                    property_name=property_name,
                                                    filename=valid_filename,
                                                    response=response)
@@ -236,15 +236,16 @@ def test_invalid_node_property_resource_value(load_pipeline):
 
     issues = response.to_json().get('issues')
     assert issues[0]['severity'] == 1
-    assert issues[0]['type'] == 'invalidNodePropertyValue'
+    assert issues[0]['type'] == 'invalidNodeProperty'
     assert issues[0]['data']['propertyName'] == 'cpu'
     assert issues[0]['data']['nodeID'] == node_id
 
 
 def test_invalid_node_property_env_var():
     response = ValidationResponse()
+    node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     invalid_env_var = "TEST_ENV_ONE\"test_one\""
-    PipelineValidationManager()._validate_environmental_variables(node_id="test-id",
+    PipelineValidationManager()._validate_environmental_variables(node=node,
                                                                   env_var=invalid_env_var,
                                                                   response=response)
     issues = response.to_json().get('issues')
@@ -256,8 +257,9 @@ def test_invalid_node_property_env_var():
 
 def test_invalid_node_property_ui_label():
     response = ValidationResponse()
+    node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     invalid_label_name = "DEAD_BREAD_DEAD_BREAD_DEAD_BREAD_DEAD_BREAD_DEAD_BREAD_DEAD_BREAD_DEAD_BREAD"
-    PipelineValidationManager()._validate_ui_data_label(node_id="test-id",
+    PipelineValidationManager()._validate_ui_data_label(node=node,
                                                         label_name=invalid_label_name,
                                                         response=response)
     issues = response.to_json().get('issues')
