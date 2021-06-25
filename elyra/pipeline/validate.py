@@ -25,7 +25,7 @@ from enum import IntEnum
 from json.decoder import JSONDecodeError
 
 from traitlets.config import SingletonConfigurable
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 
 class ValidationSeverity(IntEnum):
@@ -210,6 +210,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                              message_type="invalidNodeType",
                                              message="Unsupported node type found in this pipeline",
                                              data={"nodeID": node['id'],
+                                                   "nodeName": node['app_data']['ui_data']['label'],
                                                    "pipelineID": pipeline_id})
         else:
             response.add_message(severity=ValidationSeverity.Error,
@@ -239,7 +240,7 @@ class PipelineValidationManager(SingletonConfigurable):
                     node_data = node['app_data']
                     if node['op'] in ['execute-r-node', 'execute-python-node', 'execute-notebook-node']:
                         # Validate actual node property values
-                        self._validate_filepath(node_id=node['id'], root_dir=root_dir, property_name='filename',
+                        self._validate_filepath(node=node, root_dir=root_dir, property_name='filename',
                                                 filename=node_data['filename'], response=response)
 
                         # If the running locally, we can skip the resource and image name checks
@@ -249,15 +250,15 @@ class PipelineValidationManager(SingletonConfigurable):
                             self._validate_resource_value(node, resource_name='gpu', response=response)
                             self._validate_resource_value(node, resource_name='memory', response=response)
                         if pipeline_runtime == 'kfp' and node_data['filename'] != node_data['ui_data']['label']:
-                            self._validate_ui_data_label(node_id=node['id'], label_name=node_data['ui_data']['label'],
+                            self._validate_ui_data_label(node=node, label_name=node_data['ui_data']['label'],
                                                          response=response)
                         if node_data.get('dependencies'):
                             for dependency in node_data['dependencies']:
-                                self._validate_filepath(node_id=node['id'], root_dir=root_dir,
+                                self._validate_filepath(node=node, root_dir=root_dir,
                                                         property_name='dependencies',
                                                         filename=dependency, response=response)
                         for env_var in node_data['env_vars']:
-                            self._validate_environmental_variables(node_id=node['id'], env_var=env_var,
+                            self._validate_environmental_variables(node=node, env_var=env_var,
                                                                    response=response)
 
                     # Validate against more specific node properties in component registry
@@ -269,12 +270,14 @@ class PipelineValidationManager(SingletonConfigurable):
                                                  message_type="invalidNodeProperty",
                                                  message="Node is missing field",
                                                  data={"nodeID": node['id'],
+                                                       "nodeName": node['app_data']['ui_data']['label'],
                                                        "propertyName": node_property})
                         elif not isinstance(node_data[node_property], type(property_list[node_property])):
                             response.add_message(severity=ValidationSeverity.Error,
                                                  message_type="invalidNodeProperty",
                                                  message="Node field is incorrect type",
                                                  data={"nodeID": node['id'],
+                                                       "nodeName": node['app_data']['ui_data']['label'],
                                                        "propertyName": node_property})
 
     def _validate_container_image_name(self, node, response: ValidationResponse) -> None:
@@ -289,6 +292,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  message_type="invalidNodePropertyValue",
                                  message="Node is missing image name",
                                  data={"nodeID": node['id'],
+                                       "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": 'runtime_image'})
 
     def _validate_resource_value(self, node, resource_name: str, response: ValidationResponse) -> None:
@@ -306,15 +310,17 @@ class PipelineValidationManager(SingletonConfigurable):
                                          message_type="invalidNodePropertyValue",
                                          message="Property must be greater than zero",
                                          data={"nodeID": node['id'],
+                                               "nodeName": node['app_data']['ui_data']['label'],
                                                "propertyName": resource_name})
             except (ValueError, TypeError):
                 response.add_message(severity=ValidationSeverity.Error,
                                      message_type="invalidNodePropertyValue",
                                      message="Property has a non-parsable value",
                                      data={"nodeID": node['id'],
+                                           "nodeName": node['app_data']['ui_data']['label'],
                                            "propertyName": resource_name})
 
-    def _validate_filepath(self, property_name: str, node_id: str, root_dir: str, filename: str,
+    def _validate_filepath(self, property_name: str, node, root_dir: str, filename: str,
                            response: ValidationResponse) -> None:
         """
         Checks the file structure, paths and existence of pipeline dependencies.
@@ -329,7 +335,8 @@ class PipelineValidationManager(SingletonConfigurable):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidFilePath",
                                  message="Property has an invalid reference to a file/dir outside the root workspace",
-                                 data={"nodeID": node_id,
+                                 data={"nodeID": node['id'],
+                                       "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
                                        "value": filename})
 
@@ -337,11 +344,12 @@ class PipelineValidationManager(SingletonConfigurable):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidFilePath",
                                  message="Property has an invalid path to a file/dir or the file/dir does not exist",
-                                 data={"nodeID": node_id,
+                                 data={"nodeID": node['id'],
+                                       "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
                                        "value": filename})
 
-    def _validate_environmental_variables(self, node_id: str, env_var: str, response: ValidationResponse) -> None:
+    def _validate_environmental_variables(self, node, env_var: str, response: ValidationResponse) -> None:
         """
         Checks the format of the env var to ensure its in the correct form
         e.g. FOO = 'BAR'
@@ -354,11 +362,12 @@ class PipelineValidationManager(SingletonConfigurable):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidEnvPair",
                                  message="Property has an improperly formatted env variable key value pair",
-                                 data={"nodeID": node_id,
+                                 data={"nodeID": node['id'],
+                                       "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": 'env_vars',
                                        "value": env_var})
 
-    def _validate_ui_data_label(self, node_id: str, label_name: str, response: ValidationResponse) -> None:
+    def _validate_ui_data_label(self, node, label_name: str, response: ValidationResponse) -> None:
         """
         KFP specific check for the label name when constructing the node operation using dsl
         :param node_id: the node ID of the node the path is located in
@@ -371,7 +380,8 @@ class PipelineValidationManager(SingletonConfigurable):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidNodeLabel",
                                  message="Property string value has exceeded the max length allowed ",
-                                 data={"nodeID": node_id,
+                                 data={"nodeID": node['id'],
+                                       "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": 'label',
                                        "value": label_name})
 
@@ -423,6 +433,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                      message_type="singletonReference",
                                      message="This node is not connected to any part of the pipeline",
                                      data={"nodeID": isolate,
+                                           "nodeNames": self._get_node_names(pipeline=pipeline, node_id_list=[isolate]),
                                            "pipelineID": self._get_pipeline_id(pipeline, node_id=isolate)})
 
         cycles_detected = nx.simple_cycles(graph)
@@ -445,6 +456,8 @@ class PipelineValidationManager(SingletonConfigurable):
                                  message_type="circularReference",
                                  message="A cycle was found within this pipeline",
                                  data={"cycleNumber": cycle_number,
+                                       "nodeNames": self._get_node_names(pipeline=pipeline,
+                                                                         node_id_list=cycle_link_list),
                                        "linkIDList": cycle_link_list})
 
     def _get_link_id(self, pipeline, u_edge: str, v_edge: str) -> str:
@@ -501,3 +514,21 @@ class PipelineValidationManager(SingletonConfigurable):
             return "airflow"
         elif runtime == "Generic":
             return "generic"
+
+    def _get_node_names(self, pipeline, node_id_list: List) -> List:
+        """
+        Given a node_id_list, will return the node's name for each node_id in the list, respectively
+        :param pipeline: pipeline definition where the node is located
+        :param node_id: UUID of the node as defined in the pipeline file
+        :return: a string representing the name of the node
+        """
+        node_name_list = []
+        pipeline_json = json.loads(json.dumps(pipeline))
+        for node_id in node_id_list:
+            for single_pipeline in pipeline_json['pipelines']:
+                nodes = single_pipeline['nodes']
+                for node in nodes:
+                    if node['id'] == node_id:
+                        node_name_list.append(node['app_data']['ui_data'].get('label'))
+
+        return node_name_list
