@@ -13,19 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from enum import IntEnum
 import json
 import os
+from typing import Dict
+from typing import List
+from typing import Optional
 
 import networkx as nx
+from traitlets.config import SingletonConfigurable
 
+from elyra.pipeline.component_registry import ComponentRegistry
 from elyra.pipeline.parser import PipelineParser
 from elyra.pipeline.processor import PipelineProcessorManager
-from elyra.pipeline.registry import ComponentRegistry
-from enum import IntEnum
-from json.decoder import JSONDecodeError
-
-from traitlets.config import SingletonConfigurable
-from typing import Dict, Optional, List
 
 
 class ValidationSeverity(IntEnum):
@@ -99,7 +99,7 @@ class PipelineValidationManager(SingletonConfigurable):
 
         try:
             pipeline_json = json.loads(json.dumps(pipeline))
-        except (ValueError, JSONDecodeError):
+        except (ValueError, json.JSONDecodeError):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidJSON",
                                  message="Invalid JSON detected, unable to continue.")
@@ -196,7 +196,8 @@ class PipelineValidationManager(SingletonConfigurable):
                 pipeline_runtime = 'local'  # Update to local since they both support the same set of ops
 
         if PipelineProcessorManager.instance().is_supported_runtime(pipeline_runtime):
-            components = await PipelineProcessorManager.instance().get_components(pipeline_runtime)
+            component_list = await PipelineProcessorManager.instance().get_components(pipeline_runtime)
+            components = json.loads(ComponentRegistry.to_canvas_palette(component_list))
             for category in components['categories']:
                 supported_ops.append(category['node_types'][0]['op'])
 
@@ -210,6 +211,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                              message_type="invalidNodeType",
                                              message="Unsupported node type found in this pipeline",
                                              data={"nodeID": node['id'],
+                                                   "nodeOpName": node['op'],
                                                    "nodeName": node['app_data']['ui_data']['label'],
                                                    "pipelineID": pipeline_id})
         else:
@@ -234,7 +236,8 @@ class PipelineValidationManager(SingletonConfigurable):
         for single_pipeline in pipeline_json['pipelines']:
             node_list = single_pipeline['nodes']
             pipeline_runtime = 'local' if pipeline_runtime == 'generic' else pipeline_runtime
-            components = await PipelineProcessorManager.instance().get_components(pipeline_runtime)
+            component_list = await PipelineProcessorManager.instance().get_components(pipeline_runtime)
+            components = json.loads(ComponentRegistry.to_canvas_palette(component_list))
             for node in node_list:
                 if node['type'] == 'execution_node':
                     node_data = node['app_data']
@@ -246,9 +249,9 @@ class PipelineValidationManager(SingletonConfigurable):
                         # If the running locally, we can skip the resource and image name checks
                         if pipeline_execution != 'local':
                             self._validate_container_image_name(node, response=response)
-                            self._validate_resource_value(node, resource_name='cpu', response=response)
-                            self._validate_resource_value(node, resource_name='gpu', response=response)
-                            self._validate_resource_value(node, resource_name='memory', response=response)
+                            for resource_name in ['cpu', 'gpu', 'memory']:
+                                if resource_name in node_data.keys():
+                                    self._validate_resource_value(node, resource_name=resource_name, response=response)
                         if pipeline_runtime == 'kfp' and node_data['filename'] != node_data['ui_data']['label']:
                             self._validate_ui_data_label(node=node, label_name=node_data['ui_data']['label'],
                                                          response=response)
@@ -264,7 +267,7 @@ class PipelineValidationManager(SingletonConfigurable):
                     # Validate against more specific node properties in component registry
                     node_label = node_data['ui_data']['label']
                     node_data.pop('ui_data')  # remove unwanted/unneeded key
-                    property_list = self._get_component_properties(pipeline_runtime, components, node['op'])
+                    property_list = await self._get_component_properties(pipeline_runtime, components, node['op'])
                     for node_property in list(property_list.keys()):
                         if node_property not in list(node_data.keys()):
                             response.add_message(severity=ValidationSeverity.Error,
@@ -287,7 +290,7 @@ class PipelineValidationManager(SingletonConfigurable):
         :param node: the node definition to be validated
         :param response: ValidationResponse containing the issue list to be updated
         """
-        image_name = node['app_data'].get('runtime_image', '')
+        image_name = node['app_data'].get('runtime_image')
         if not image_name:
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidNodeProperty",
@@ -332,6 +335,8 @@ class PipelineValidationManager(SingletonConfigurable):
         :param filename: the name of the file or directory to verify
         :param response: ValidationResponse containing the issue list to be updated
         """
+        abs_path_to_file = f"{root_dir}/{filename}"
+
         if filename.split('/')[0] in ['.', ".."]:
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidFilePath",
@@ -339,7 +344,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  data={"nodeID": node['id'],
                                        "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
-                                       "value": filename})
+                                       "value": abs_path_to_file})
 
         elif not os.path.exists(root_dir + "/" + filename):
             response.add_message(severity=ValidationSeverity.Error,
@@ -348,7 +353,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  data={"nodeID": node['id'],
                                        "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
-                                       "value": filename})
+                                       "value": abs_path_to_file})
 
     def _validate_environmental_variables(self, node, env_var: str, response: ValidationResponse) -> None:
         """
@@ -494,13 +499,14 @@ class PipelineValidationManager(SingletonConfigurable):
                 if node['id'] == node_id:
                     return single_pipeline['id']
 
-    def _get_component_properties(self, pipeline_runtime: str, components: dict, node_op: str) -> Dict:
+    async def _get_component_properties(self, pipeline_runtime: str, components: dict, node_op: str) -> Dict:
         """
         Retrieve the list of properties associated with the node_op
         :param components: list of components associated with the pipeline runtime being used e.g. kfp, airflow
         :param node_op: the node operation e.g. execute-notebook-node
         :return: a list of property names associated with the node op
         """
+
         if node_op == "execute-notebook-node":
             node_op = "notebooks"
         elif node_op == "execute-r-node":
@@ -509,8 +515,13 @@ class PipelineValidationManager(SingletonConfigurable):
             node_op = "python-script"
         for category in components['categories']:
             if node_op == category['node_types'][0]['op']:
-                properties = ComponentRegistry().get_properties(pipeline_runtime, category['id'])
-                return properties['current_parameters']
+                # properties = ComponentRegistry().get_properties(pipeline_runtime, category['id'])
+                component = await PipelineProcessorManager.instance().get_component(pipeline_runtime,
+                                                                                    category['id'])
+                component_prop_string = ComponentRegistry.to_canvas_properties(component)
+                component_prop_dict = json.loads(component_prop_string)
+                return component_prop_dict['current_parameters']
+
         return {}
 
     def _get_runtime_schema(self, pipeline_json) -> str:
@@ -520,7 +531,7 @@ class PipelineValidationManager(SingletonConfigurable):
         elif runtime == "Apache Airflow":
             return "airflow"
         elif runtime == "Generic":
-            return "generic"
+            return "local"
 
     def _get_node_names(self, pipeline, node_id_list: List) -> List:
         """

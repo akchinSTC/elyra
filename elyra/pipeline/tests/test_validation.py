@@ -16,9 +16,11 @@
 
 import json
 import os
+
 import pytest
 
-from ..validate import PipelineValidationManager, ValidationResponse
+from elyra.pipeline.validate import PipelineValidationManager
+from elyra.pipeline.validate import ValidationResponse
 
 
 @pytest.fixture
@@ -34,7 +36,7 @@ def load_pipeline():
 
 
 def test_basic_pipeline_structure(load_pipeline):
-    pipeline, response = load_pipeline('basic_pipeline_only_notebook.pipeline')
+    pipeline, response = load_pipeline('generic_basic_pipeline_only_notebook.pipeline')
     PipelineValidationManager()._validate_pipeline_structure(pipeline=pipeline,
                                                              response=response)
     assert not response.has_fatal
@@ -42,7 +44,7 @@ def test_basic_pipeline_structure(load_pipeline):
 
 
 def test_basic_pipeline_structure_with_scripts(load_pipeline):
-    pipeline, response = load_pipeline('basic_pipeline_with_scripts.pipeline')
+    pipeline, response = load_pipeline('generic_basic_pipeline_with_scripts.pipeline')
     PipelineValidationManager()._validate_pipeline_structure(pipeline=pipeline,
                                                              response=response)
     assert not response.has_fatal
@@ -50,12 +52,13 @@ def test_basic_pipeline_structure_with_scripts(load_pipeline):
 
 
 async def test_invalid_runtime_node_kubeflow(load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_op_in_kubeflow.pipeline')
-    node_id = "42a9a4b5-7ed8-43bf-aabb-a5943f95d3ac"
+    pipeline, response = load_pipeline('kf_invalid_node_op.pipeline')
+    node_id = "fe08b42d-bd8c-4e97-8010-0503a3185427"
     await PipelineValidationManager()._validate_compatibility(pipeline=pipeline,
                                                               response=response,
                                                               pipeline_runtime='kfp',
                                                               pipeline_execution='kfp')
+
     issues = response.to_json().get('issues')
     assert len(issues) == 1
     assert issues[0]['severity'] == 1
@@ -64,9 +67,9 @@ async def test_invalid_runtime_node_kubeflow(load_pipeline):
 
 
 async def test_invalid_runtime_node_kubeflow_with_supernode(load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_op_with_supernode_kubeflow.pipeline')
-    node_id = "42a9a4b5-7ed8-43bf-aabb-a5943f95d3ac"
-    pipeline_id = "0080b042-395a-4006-a8f9-8fadde7dbf7d"
+    pipeline, response = load_pipeline('kf_invalid_node_op_with_supernode.pipeline')
+    node_id = "98aa7270-639b-42a4-9a07-b31cd0fa3205"
+    pipeline_id = "00304a2b-dec4-4a73-ab4a-6830f97d7855"
     await PipelineValidationManager()._validate_compatibility(pipeline=pipeline,
                                                               response=response,
                                                               pipeline_runtime='kfp',
@@ -80,7 +83,7 @@ async def test_invalid_runtime_node_kubeflow_with_supernode(load_pipeline):
 
 
 async def test_invalid_pipeline_runtime_with_kubeflow_execution(load_pipeline):
-    pipeline, response = load_pipeline('basic_pipeline_with_scripts.pipeline')
+    pipeline, response = load_pipeline('generic_basic_pipeline_with_scripts.pipeline')
 
     await PipelineValidationManager()._validate_compatibility(pipeline=pipeline,
                                                               response=response,
@@ -93,7 +96,7 @@ async def test_invalid_pipeline_runtime_with_kubeflow_execution(load_pipeline):
 
 
 async def test_invalid_pipeline_runtime_with_local_execution(load_pipeline):
-    pipeline, response = load_pipeline('basic_pipeline_with_scripts.pipeline')
+    pipeline, response = load_pipeline('generic_basic_pipeline_with_scripts.pipeline')
 
     await PipelineValidationManager()._validate_compatibility(pipeline=pipeline,
                                                               response=response,
@@ -107,8 +110,8 @@ async def test_invalid_pipeline_runtime_with_local_execution(load_pipeline):
 
 
 async def test_invalid_node_op_with_airflow(load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_op_with_airflow.pipeline')
-    node_id = "f7eb6300-9263-4a47-be91-8dbad7c44a83"
+    pipeline, response = load_pipeline('aa_invalid_node_op.pipeline')
+    node_id = "593a5a87-5c48-4fc6-b471-03e6eb332d9c"
     await PipelineValidationManager()._validate_compatibility(pipeline=pipeline,
                                                               response=response,
                                                               pipeline_runtime='airflow',
@@ -121,8 +124,8 @@ async def test_invalid_node_op_with_airflow(load_pipeline):
 
 
 async def test_invalid_node_property_structure(monkeypatch, load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_property_structure.pipeline')
-    node_id = 'cc35500d-31c9-454f-8c6c-94acd3e24b5c'
+    pipeline, response = load_pipeline('generic_invalid_node_property_structure.pipeline')
+    node_id = '88ab83dc-d5f0-443a-8837-788ed16851b7'
     node_property = 'runtime_image'
     pvm = PipelineValidationManager()
 
@@ -143,9 +146,9 @@ async def test_invalid_node_property_structure(monkeypatch, load_pipeline):
 
 
 async def test_missing_node_property_for_kubeflow_pipeline(monkeypatch, load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_property_in_kubeflow.pipeline')
-    node_id = 'dd563d1f-c43e-4c4e-8e7b-9f9925b4223c'
-    node_property = "elyra_path_notebook"
+    pipeline, response = load_pipeline('kf_invalid_node_property_in_component.pipeline')
+    node_id = 'fe08b42d-bd8c-4e97-8010-0503a3185427'
+    node_property = "notebook"
     pvm = PipelineValidationManager()
 
     monkeypatch.setattr(pvm, "_validate_filepath", lambda node, root_dir, property_name, filename, response: True)
@@ -165,8 +168,8 @@ async def test_missing_node_property_for_kubeflow_pipeline(monkeypatch, load_pip
 
 
 def test_invalid_node_property_image_name(load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_property_image_name.pipeline')
-    node_id = 'cc35500d-31c9-454f-8c6c-94acd3e24b5c'
+    pipeline, response = load_pipeline('generic_invalid_node_property_image_name.pipeline')
+    node_id = '88ab83dc-d5f0-443a-8837-788ed16851b7'
     node_property = 'runtime_image'
 
     node = pipeline['pipelines'][0]['nodes'][0]
@@ -174,6 +177,7 @@ def test_invalid_node_property_image_name(load_pipeline):
     PipelineValidationManager()._validate_container_image_name(node, response)
 
     issues = response.to_json().get('issues')
+    assert len(issues) == 1
     assert issues[0]['severity'] == 1
     assert issues[0]['type'] == 'invalidNodeProperty'
     assert issues[0]['data']['propertyName'] == node_property
@@ -214,7 +218,7 @@ def test_invalid_node_property_dependency_filepath_non_existent():
 
 def test_valid_node_property_dependency_filepath():
     response = ValidationResponse()
-    valid_filename = 'elyra/pipeline/tests/resources/validation_pipelines/single_cycle.pipeline'
+    valid_filename = 'elyra/pipeline/tests/resources/validation_pipelines/generic_single_cycle.pipeline'
     node = {"id": "test-id", "app_data": {"ui_data": {"label": "test"}}}
     property_name = 'test-property'
 
@@ -228,16 +232,17 @@ def test_valid_node_property_dependency_filepath():
 
 
 def test_invalid_node_property_resource_value(load_pipeline):
-    pipeline, response = load_pipeline('invalid_node_property_resource.pipeline')
-    node_id = '94fff95c-d5b9-4350-b015-c21c070b221a'
+    pipeline, response = load_pipeline('generic_invalid_node_property_hardware_resources.pipeline')
+    node_id = '88ab83dc-d5f0-443a-8837-788ed16851b7'
 
     node = pipeline['pipelines'][0]['nodes'][0]
-    PipelineValidationManager()._validate_resource_value(node, resource_name='cpu', response=response)
+    PipelineValidationManager()._validate_resource_value(node, resource_name='memory', response=response)
 
     issues = response.to_json().get('issues')
+    assert len(issues) == 1
     assert issues[0]['severity'] == 1
     assert issues[0]['type'] == 'invalidNodeProperty'
-    assert issues[0]['data']['propertyName'] == 'cpu'
+    assert issues[0]['data']['propertyName'] == 'memory'
     assert issues[0]['data']['nodeID'] == node_id
 
 
@@ -270,9 +275,8 @@ def test_invalid_node_property_ui_label():
 
 
 def test_pipeline_graph_single_cycle(load_pipeline):
-    pipeline, response = load_pipeline('single_cycle.pipeline')
-    cycle_ID = ["e9c36292-823c-4791-966a-17737530170b",
-                "fda0e1df-dc61-4dbc-9a63-e59d9d117ad8"]
+    pipeline, response = load_pipeline('generic_single_cycle.pipeline')
+    cycle_ID = ['c309f6dd-b022-4b1c-b2b0-b6449bb26e8f', '8cb986cb-4fc9-4b1d-864d-0ec64b7ac13c']
 
     PipelineValidationManager()._validate_pipeline_graph(pipeline=pipeline,
                                                          response=response)
@@ -284,12 +288,9 @@ def test_pipeline_graph_single_cycle(load_pipeline):
 
 
 def test_pipeline_graph_double_cycle(load_pipeline):
-    pipeline, response = load_pipeline('double_cycle.pipeline')
-    cycle_ID = ["4be73f03-c8ef-4d05-92ff-e3a8c60288c6",
-                "260ff083-cdae-4164-9cb3-8acf5796d7cc",
-                "897cc4e9-1390-42e1-aaff-80e144338f3e"]
-    cycle_two_ID = ["e9c36292-823c-4791-966a-17737530170b",
-                    "fda0e1df-dc61-4dbc-9a63-e59d9d117ad8"]
+    pipeline, response = load_pipeline('generic_double_cycle.pipeline')
+    cycle_ID = ['597b2971-b95d-4df7-a36d-9d93b0345298', 'b63378e4-9085-4a33-9330-6f86054681f4']
+    cycle_two_ID = ['c309f6dd-b022-4b1c-b2b0-b6449bb26e8f', '8cb986cb-4fc9-4b1d-864d-0ec64b7ac13c']
 
     PipelineValidationManager()._validate_pipeline_graph(pipeline=pipeline,
                                                          response=response)
@@ -304,8 +305,8 @@ def test_pipeline_graph_double_cycle(load_pipeline):
 
 
 def test_pipeline_graph_singleton(load_pipeline):
-    pipeline, response = load_pipeline('singleton.pipeline')
-    node_id = 'c0edc462-587c-4226-baad-5855dec7ae10'
+    pipeline, response = load_pipeline('generic_singleton.pipeline')
+    node_id = '0195fefd-3ceb-4a90-a12c-3958ef0ff42e'
 
     PipelineValidationManager()._validate_pipeline_graph(pipeline=pipeline,
                                                          response=response)

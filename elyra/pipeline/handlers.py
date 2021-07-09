@@ -22,14 +22,13 @@ from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
 
-from ..util.path import get_expanded_path
-from .validate import PipelineValidationManager
-
 from elyra.pipeline.component import Component
 from elyra.pipeline.component_registry import ComponentRegistry
 from elyra.pipeline.parser import PipelineParser
 from elyra.pipeline.processor import PipelineProcessorManager
+from elyra.pipeline.validate import PipelineValidationManager
 from elyra.util.http import HttpErrorMixin
+from elyra.util.path import get_expanded_path
 
 
 class PipelineExportHandler(HttpErrorMixin, APIHandler):
