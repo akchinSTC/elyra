@@ -335,25 +335,25 @@ class PipelineValidationManager(SingletonConfigurable):
         :param filename: the name of the file or directory to verify
         :param response: ValidationResponse containing the issue list to be updated
         """
-        abs_path_to_file = f"{root_dir}/{filename}"
+        normalized_path = os.path.normpath(f"{root_dir}/{filename}")
 
-        if filename.split('/')[0] in ['.', ".."]:
+        if not os.path.commonpath([normalized_path, root_dir]) == root_dir:
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidFilePath",
                                  message="Property has an invalid reference to a file/dir outside the root workspace",
                                  data={"nodeID": node['id'],
                                        "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
-                                       "value": abs_path_to_file})
+                                       "value": normalized_path})
 
-        elif not os.path.exists(root_dir + "/" + filename):
+        elif not os.path.exists(normalized_path):
             response.add_message(severity=ValidationSeverity.Error,
                                  message_type="invalidFilePath",
                                  message="Property has an invalid path to a file/dir or the file/dir does not exist",
                                  data={"nodeID": node['id'],
                                        "nodeName": node['app_data']['ui_data']['label'],
                                        "propertyName": property_name,
-                                       "value": abs_path_to_file})
+                                       "value": normalized_path})
 
     def _validate_environmental_variables(self, node, env_var: str, response: ValidationResponse) -> None:
         """
@@ -525,13 +525,17 @@ class PipelineValidationManager(SingletonConfigurable):
         return {}
 
     def _get_runtime_schema(self, pipeline_json) -> str:
-        runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
-        if runtime == "Kubeflow Pipelines":
-            return "kfp"
-        elif runtime == "Apache Airflow":
-            return "airflow"
-        elif runtime == "Generic":
+        properties_runtime = pipeline_json['pipelines'][0]['app_data'].get('properties', None)
+        if not properties_runtime:
             return "local"
+        else:
+            runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
+            if runtime == "Kubeflow Pipelines":
+                return "kfp"
+            elif runtime == "Apache Airflow":
+                return "airflow"
+            elif runtime == "Generic":
+                return "local"
 
     def _get_node_names(self, pipeline, node_id_list: List) -> List:
         """
