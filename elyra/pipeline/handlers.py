@@ -55,8 +55,8 @@ class PipelineExportHandler(HttpErrorMixin, APIHandler):
 
         root_dir = self.settings['server_root_dir']
         expanded_path = get_expanded_path(root_dir)
-        response = await PipelineValidationManager().validate(pipeline=pipeline_definition,
-                                                              root_dir=expanded_path)
+        response = await PipelineValidationManager.instance().validate(pipeline=pipeline_definition,
+                                                                       root_dir=expanded_path)
 
         self.log.debug(f"Validation checks completed. Results as follows: {response.to_json()}")
 
@@ -104,8 +104,8 @@ class PipelineSchedulerHandler(HttpErrorMixin, APIHandler):
 
         root_dir = self.settings['server_root_dir']
         expanded_path = get_expanded_path(root_dir)
-        response = await PipelineValidationManager().validate(pipeline=pipeline_definition,
-                                                              root_dir=expanded_path)
+        response = await PipelineValidationManager.instance().validate(pipeline=pipeline_definition,
+                                                                       root_dir=expanded_path)
 
         self.log.debug(f"Validation checks completed. Results as follows: {response.to_json()}")
 
@@ -183,8 +183,8 @@ class PipelineValidationHandler(HttpErrorMixin, APIHandler):
         pipeline_definition = self.get_json_body()
         self.log.debug("Pipeline payload: %s", pipeline_definition)
 
-        response = await PipelineValidationManager().validate(pipeline=pipeline_definition,
-                                                              root_dir=expanded_path)
+        response = await PipelineValidationManager.instance().validate(pipeline=pipeline_definition,
+                                                                       root_dir=expanded_path)
         json_msg = response.to_json()
 
         self.set_status(200)
