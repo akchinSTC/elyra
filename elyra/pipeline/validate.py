@@ -245,11 +245,17 @@ class PipelineValidationManager(SingletonConfigurable):
             components = ComponentRegistry.to_canvas_palette(component_list)
             for node in node_list:
                 if node['type'] == 'execution_node':
-                    node_data = node['app_data']['component_parameters']
+                    if self._is_legacy_pipeline(pipeline):
+                        node_data = node['app_data']
+                        node_label = node['app_data']['ui_data']['label']
+                    else:
+                        node_data = node['app_data']['component_parameters']
+                        node_label = node['app_data']['label']
                     if Operation.is_generic_operation(node['op']):
                         # Validate actual node property values
-                        self._validate_filepath(node=node, root_dir=root_dir, property_name='filename',
-                                                filename=node_data['filename'], response=response)
+                        self._validate_filepath(node=node, node_label=node_label, root_dir=root_dir,
+                                                property_name='filename', filename=node_data['filename'],
+                                                response=response)
 
                         # If the running locally, we can skip the resource and image name checks
                         if pipeline_execution != 'local':
@@ -257,12 +263,12 @@ class PipelineValidationManager(SingletonConfigurable):
                             for resource_name in ['cpu', 'gpu', 'memory']:
                                 if resource_name in node_data.keys():
                                     self._validate_resource_value(node, resource_name=resource_name, response=response)
-                        if pipeline_runtime == 'kfp' and node_data['filename'] != node_data['label']:
-                            self._validate_label(node=node, label_name=node_data['label'],
+                        if pipeline_runtime == 'kfp' and node_data['filename'] != node_label:
+                            self._validate_label(node=node, label_name=node_label,
                                                  response=response)
                         if node_data.get('dependencies'):
                             for dependency in node_data['dependencies']:
-                                self._validate_filepath(node=node, root_dir=root_dir,
+                                self._validate_filepath(node=node, node_label=node_label, root_dir=root_dir,
                                                         property_name='dependencies',
                                                         filename=dependency, response=response)
                         for env_var in node_data['env_vars']:
@@ -270,7 +276,6 @@ class PipelineValidationManager(SingletonConfigurable):
                                                                    response=response)
 
                     # Validate against more specific node properties in component registry
-                    node_label = node_data['label']
                     property_list = await self._get_component_properties(pipeline_runtime, components, node['op'])
                     for node_property in list(property_list.keys()):
                         if node_property not in list(node_data.keys()):
@@ -328,7 +333,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                            "nodeName": node['app_data']['label'],
                                            "propertyName": resource_name})
 
-    def _validate_filepath(self, property_name: str, node, root_dir: str, filename: str,
+    def _validate_filepath(self, property_name: str, node, node_label: str, root_dir: str, filename: str,
                            response: ValidationResponse) -> None:
         """
         Checks the file structure, paths and existence of pipeline dependencies.
@@ -346,7 +351,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  message_type="invalidFilePath",
                                  message="Property has an invalid reference to a file/dir outside the root workspace",
                                  data={"nodeID": node['id'],
-                                       "nodeName": node['app_data']['label'],
+                                       "nodeName": node_label,
                                        "propertyName": property_name,
                                        "value": normalized_path})
 
@@ -355,7 +360,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  message_type="invalidFilePath",
                                  message="Property has an invalid path to a file/dir or the file/dir does not exist",
                                  data={"nodeID": node['id'],
-                                       "nodeName": node['app_data']['label'],
+                                       "nodeName": node_label,
                                        "propertyName": property_name,
                                        "value": normalized_path})
 
@@ -391,7 +396,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  message_type="invalidNodeLabel",
                                  message="Property string value has exceeded the max length allowed ",
                                  data={"nodeID": node['id'],
-                                       "nodeName": node['app_data']['label'],
+                                       "nodeName": label_name,
                                        "propertyName": 'label',
                                        "value": label_name})
 
@@ -527,8 +532,17 @@ class PipelineValidationManager(SingletonConfigurable):
         return {}
 
     def _get_runtime_schema(self, pipeline_json) -> str:
-        properties_runtime = pipeline_json['pipelines'][0]['app_data'].get('properties', None)
-        if not properties_runtime:
+        if pipeline_json['pipelines'][0]['app_data'].get('properties') is not None:
+            runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
+        else:
+            # Assume Generic since properties field doesnt exist = older version of pipeline schema
+            runtime = "Generic"
+        if runtime == "Kubeflow Pipelines":
+            return "kfp"
+        elif runtime == "Apache Airflow":
+            return "airflow"
+        elif runtime == "Generic":
+
             return "local"
         else:
             runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
@@ -556,3 +570,6 @@ class PipelineValidationManager(SingletonConfigurable):
                         node_name_list.append(node['app_data'].get('label'))
 
         return node_name_list
+
+    def _is_legacy_pipeline(self, pipeline) -> bool:
+        return pipeline['pipelines'][0]['app_data'].get('properties') is None
