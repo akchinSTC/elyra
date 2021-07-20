@@ -228,7 +228,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                  data={"pipelineRuntime": pipeline_runtime,
                                        "pipelineID": pipeline_id})
 
-    async def _validate_node_properties(self, root_dir: str, pipeline: Dict, pipeline_runtime: str,
+    async def _validate_node_properties(self, root_dir: str, pipeline: dict, pipeline_runtime: str,
                                         pipeline_execution: str, response: ValidationResponse) -> None:
         """
         Validates each of the node's structure for required fields/properties as well as
@@ -255,13 +255,13 @@ class PipelineValidationManager(SingletonConfigurable):
                         node_data = node['app_data'].get('component_parameters')
                         node_label = node['app_data'].get('label')
 
-                    resource_name_list = ['cpu', 'gpu', 'memory']
-                    image_name = node_data.get('runtime_image')
-                    filename = node_data.get("filename")
-                    dependencies = node_data.get("dependencies")
-                    env_vars = node_data.get("env_vars")
-
                     if Operation.is_generic_operation(node['op']):
+                        resource_name_list = ['cpu', 'gpu', 'memory']
+                        image_name = node_data.get('runtime_image')
+                        filename = node_data.get("filename")
+                        dependencies = node_data.get("dependencies")
+                        env_vars = node_data.get("env_vars")
+
                         # Validate actual node property values
                         self._validate_filepath(node=node, node_label=node_label, root_dir=root_dir,
                                                 property_name='filename', filename=filename,
