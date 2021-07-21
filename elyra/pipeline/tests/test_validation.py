@@ -135,7 +135,7 @@ async def test_invalid_node_property_structure(monkeypatch, load_pipeline):
     pvm = PipelineValidationManager.instance()
 
     monkeypatch.setattr(pvm, "_validate_filepath", lambda node_id, node_label, root_dir,
-                                                          property_name, filename, response: True)
+                        property_name, filename, response: True)
 
     await pvm._validate_node_properties(root_dir='',
                                         pipeline=pipeline,
