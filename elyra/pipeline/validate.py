@@ -93,7 +93,7 @@ class PipelineValidationManager(SingletonConfigurable):
     def __init__(self, **kwargs):
         super().__init__()
 
-    async def validate(self, root_dir: str, pipeline: Dict) -> ValidationResponse:
+    async def validate(self, root_dir: str, pipeline: dict) -> ValidationResponse:
         """
         Validates the pipeline JSON payload
         :param root_dir: the absolute base path of the current elyra workspace
@@ -112,7 +112,7 @@ class PipelineValidationManager(SingletonConfigurable):
             return response
 
         pipeline_execution = pipeline_json['pipelines'][0]['app_data'].get('runtime')  # local, kfp, airflow
-        pipeline_runtime = self._get_runtime_schema(pipeline_json)
+        pipeline_runtime = self._get_runtime_schema(pipeline, response)
 
         self._validate_pipeline_structure(pipeline=pipeline, response=response)
         await self._validate_compatibility(pipeline=pipeline, response=response,
@@ -124,7 +124,7 @@ class PipelineValidationManager(SingletonConfigurable):
 
         return response
 
-    def _validate_pipeline_structure(self, pipeline: Dict, response: ValidationResponse) -> None:
+    def _validate_pipeline_structure(self, pipeline: dict, response: ValidationResponse) -> None:
         """
         Validates the pipeline (only pipeline scope) structure for required fields and types
         :param pipeline: the pipeline definition to be validated
@@ -331,8 +331,8 @@ class PipelineValidationManager(SingletonConfigurable):
                                        "nodeName": node_label,
                                        "propertyName": 'runtime_image'})
 
-    def _validate_resource_value(self, node_id, node_label, resource_name: str,
-                                 resource_value, response: ValidationResponse) -> None:
+    def _validate_resource_value(self, node_id: str, node_label: str, resource_name: str,
+                                 resource_value: str, response: ValidationResponse) -> None:
         """
         Validates the value for hardware resources requested
         :param node_id: the unique ID of the node
@@ -429,7 +429,7 @@ class PipelineValidationManager(SingletonConfigurable):
 
         # TODO: run regex check on label
 
-    def _validate_pipeline_graph(self, pipeline: Dict, response: ValidationResponse) -> None:
+    def _validate_pipeline_graph(self, pipeline: dict, response: ValidationResponse) -> None:
         """
         Validates that the pipeline is an acyclic graph, meaning no circular references
         Converts the pipeline definition into a series of tuple node edges(arrows) that represent the connections
@@ -502,7 +502,7 @@ class PipelineValidationManager(SingletonConfigurable):
                                                                          node_id_list=cycle_link_list),
                                        "linkIDList": cycle_link_list})
 
-    def _get_link_id(self, pipeline, u_edge: str, v_edge: str) -> str:
+    def _get_link_id(self, pipeline: dict, u_edge: str, v_edge: str) -> str:
         """
         Retrieves the LinkID associated with the connecting edge from u_edge to v_edge
         :param pipeline: pipeline definition where the link is located
@@ -559,33 +559,31 @@ class PipelineValidationManager(SingletonConfigurable):
 
         return {}
 
-    def _get_runtime_schema(self, pipeline_json) -> str:
-        if pipeline_json['pipelines'][0]['app_data'].get('properties') is not None:
+    def _get_runtime_schema(self, pipeline: dict, response: ValidationResponse) -> str:
+        pipeline_json = json.loads(json.dumps(pipeline))
+        if not self._is_legacy_pipeline(pipeline):
             runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
         else:
             # Assume Generic since properties field doesnt exist = older version of pipeline schema
             runtime = "Generic"
+
         if runtime == "Kubeflow Pipelines":
             return "kfp"
         elif runtime == "Apache Airflow":
             return "airflow"
         elif runtime == "Generic":
-
-            return "local"
+            return "generic"
         else:
-            runtime = pipeline_json['pipelines'][0]['app_data']['properties'].get('runtime')
-            if runtime == "Kubeflow Pipelines":
-                return "kfp"
-            elif runtime == "Apache Airflow":
-                return "airflow"
-            elif runtime == "Generic":
-                return "local"
+            response.add_message(severity=ValidationSeverity.Error,
+                                 message_type="invalidRuntime",
+                                 message="Unsupported pipeline runtime selected in this pipeline",
+                                 data={"pipelineRuntime": runtime})
 
     def _get_node_names(self, pipeline: dict, node_id_list: list) -> List:
         """
         Given a node_id_list, will return the node's name for each node_id in the list, respectively
         :param pipeline: pipeline definition where the node is located
-        :param node_id: UUID of the node as defined in the pipeline file
+        :param node_id_list: a list of UUIDs defined in the pipeline file
         :return: a string representing the name of the node
         """
         node_name_list = []
@@ -599,7 +597,7 @@ class PipelineValidationManager(SingletonConfigurable):
 
         return node_name_list
 
-    def _is_legacy_pipeline(self, pipeline) -> bool:
+    def _is_legacy_pipeline(self, pipeline: dict) -> bool:
         """
         Checks the pipeline to determine if the pipeline is an older legacy schema
         :param pipeline:
