@@ -13,18 +13,22 @@
           "type": "execution_node",
           "op": "execute-notebook-node",
           "app_data": {
-            "label": "",
-            "filename": "notebookA.ipynb",
-            "runtime_image": "continuumio/anaconda3:2020.07",
-            "outputs": [],
-            "env_vars": [],
-            "dependencies": [],
-            "include_subdirectories": false,
+            "label": "notebookA.ipynb",
+            "component_parameters": {
+              "label": "",
+              "filename": "notebookA.ipynb",
+              "runtime_image": "continuumio/anaconda3:2020.07",
+              "outputs": [],
+              "env_vars": [],
+              "dependencies": [],
+              "include_subdirectories": false
+            },
             "ui_data": {
               "label": "notebookA.ipynb",
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20viewBox%3D%220%200%2022%2022%22%3E%0A%20%20%3Cg%20class%3D%22jp-icon-warn0%20jp-icon-selectable%22%20fill%3D%22%23EF6C00%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.7%203.3v15.4H3.3V3.3h15.4m1.5-1.5H1.8v18.3h18.3l.1-18.3z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M16.5%2016.5l-5.4-4.3-5.6%204.3v-11h11z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A",
               "x_pos": 175,
-              "y_pos": 168
+              "y_pos": 168,
+              "description": "Run notebook file"
             }
           },
           "inputs": [
@@ -61,18 +65,22 @@
           "type": "execution_node",
           "op": "execute-notebook-node",
           "app_data": {
-            "label": "",
-            "filename": "notebookB.ipynb",
-            "runtime_image": "continuumio/anaconda3:2020.07",
-            "outputs": [],
-            "env_vars": [],
-            "dependencies": [],
-            "include_subdirectories": false,
+            "label": "notebookB.ipynb",
+            "component_parameters": {
+              "label": "",
+              "filename": "notebookB.ipynb",
+              "runtime_image": "continuumio/anaconda3:2020.07",
+              "outputs": [],
+              "env_vars": [],
+              "dependencies": [],
+              "include_subdirectories": false
+            },
             "ui_data": {
               "label": "notebookB.ipynb",
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20viewBox%3D%220%200%2022%2022%22%3E%0A%20%20%3Cg%20class%3D%22jp-icon-warn0%20jp-icon-selectable%22%20fill%3D%22%23EF6C00%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.7%203.3v15.4H3.3V3.3h15.4m1.5-1.5H1.8v18.3h18.3l.1-18.3z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M16.5%2016.5l-5.4-4.3-5.6%204.3v-11h11z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A",
               "x_pos": 487,
-              "y_pos": 76
+              "y_pos": 76,
+              "description": "Run notebook file"
             }
           },
           "inputs": [
@@ -121,18 +129,22 @@
           "type": "execution_node",
           "op": "execute-notebook-node",
           "app_data": {
-            "label": "",
-            "filename": "notebookC.ipynb",
-            "runtime_image": "continuumio/anaconda3:2020.07",
-            "outputs": [],
-            "env_vars": [],
-            "dependencies": [],
-            "include_subdirectories": false,
+            "label": "notebookC.ipynb",
+            "component_parameters": {
+              "label": "",
+              "filename": "notebookC.ipynb",
+              "runtime_image": "continuumio/anaconda3:2020.07",
+              "outputs": [],
+              "env_vars": [],
+              "dependencies": [],
+              "include_subdirectories": false
+            },
             "ui_data": {
               "label": "notebookC.ipynb",
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20viewBox%3D%220%200%2022%2022%22%3E%0A%20%20%3Cg%20class%3D%22jp-icon-warn0%20jp-icon-selectable%22%20fill%3D%22%23EF6C00%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.7%203.3v15.4H3.3V3.3h15.4m1.5-1.5H1.8v18.3h18.3l.1-18.3z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M16.5%2016.5l-5.4-4.3-5.6%204.3v-11h11z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A",
               "x_pos": 482,
-              "y_pos": 251
+              "y_pos": 251,
+              "description": "Run notebook file"
             }
           },
           "inputs": [
@@ -181,18 +193,22 @@
           "type": "execution_node",
           "op": "execute-notebook-node",
           "app_data": {
-            "label": "",
-            "filename": "notebookD.ipynb",
-            "runtime_image": "continuumio/anaconda3:2020.07",
-            "outputs": [],
-            "env_vars": [],
-            "dependencies": [],
-            "include_subdirectories": false,
+            "label": "notebookD.ipynb",
+            "component_parameters": {
+              "label": "",
+              "filename": "notebookD.ipynb",
+              "runtime_image": "continuumio/anaconda3:2020.07",
+              "outputs": [],
+              "env_vars": [],
+              "dependencies": [],
+              "include_subdirectories": false
+            },
             "ui_data": {
               "label": "notebookD.ipynb",
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20viewBox%3D%220%200%2022%2022%22%3E%0A%20%20%3Cg%20class%3D%22jp-icon-warn0%20jp-icon-selectable%22%20fill%3D%22%23EF6C00%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.7%203.3v15.4H3.3V3.3h15.4m1.5-1.5H1.8v18.3h18.3l.1-18.3z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M16.5%2016.5l-5.4-4.3-5.6%204.3v-11h11z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A",
               "x_pos": 764,
-              "y_pos": 75
+              "y_pos": 75,
+              "description": "Run notebook file"
             }
           },
           "inputs": [
@@ -236,18 +252,22 @@
           "type": "execution_node",
           "op": "execute-notebook-node",
           "app_data": {
-            "label": "",
-            "filename": "notebookE.ipynb",
-            "runtime_image": "continuumio/anaconda3:2020.07",
-            "outputs": [],
-            "env_vars": [],
-            "dependencies": [],
-            "include_subdirectories": false,
+            "label": "notebookE.ipynb",
+            "component_parameters": {
+              "label": "",
+              "filename": "notebookE.ipynb",
+              "runtime_image": "continuumio/anaconda3:2020.07",
+              "outputs": [],
+              "env_vars": [],
+              "dependencies": [],
+              "include_subdirectories": false
+            },
             "ui_data": {
               "label": "notebookE.ipynb",
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20viewBox%3D%220%200%2022%2022%22%3E%0A%20%20%3Cg%20class%3D%22jp-icon-warn0%20jp-icon-selectable%22%20fill%3D%22%23EF6C00%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.7%203.3v15.4H3.3V3.3h15.4m1.5-1.5H1.8v18.3h18.3l.1-18.3z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M16.5%2016.5l-5.4-4.3-5.6%204.3v-11h11z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A",
               "x_pos": 769,
-              "y_pos": 249.99998474121094
+              "y_pos": 249.99998474121094,
+              "description": "Run notebook file"
             }
           },
           "inputs": [
@@ -292,9 +312,9 @@
           "runtime": null,
           "comments": []
         },
-        "version": 3,
+        "version": 4,
         "properties": {
-          "name": "generic_double_cycle_pipeline",
+          "name": "generic_double_cycle",
           "runtime": "Generic"
         }
       },
